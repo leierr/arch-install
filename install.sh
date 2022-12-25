@@ -21,6 +21,16 @@ function throw_error() {
 	exit 1
 }
 
+function pre_checks () {
+	echo -e "\e[33mRunning pre-run checks\e[0m"
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+
+	# verify boot mode
+	echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	# check internet access
+	echo -n "-> Internet access: " ;  sleep 0.5 ; timeout 3 bash -c "</dev/tcp/archlinux.org/443" 2>/dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+}
+
 function choose_your_disk() {
 	local disks_list=($(lsblk -adrnp -o NAME -I 8,259))
 
@@ -36,4 +46,5 @@ function choose_your_disk() {
 	[[ -n "$install_disk" && -e "$install_disk" ]] && return 0 || throw_error "Disk not found"
 }
 
+pre_checks
 choose_your_disk
