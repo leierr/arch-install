@@ -2,7 +2,7 @@
 
 # local env
 user_account_name="leier"
-user_account_groups=("wheel" "users")
+user_account_groups=("adm" "wheel")
 install_disk=""
 packages_to_install=(
 	"base" "base-devel" "linux-lts" "linux-lts-headers" "linux-firmware" "xfsprogs" #required
@@ -31,6 +31,7 @@ function pre_checks () {
 	echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check internet access
 	echo -n "-> Internet access: " ;  sleep 0.5 ; timeout 3 bash -c "</dev/tcp/archlinux.org/443" 2>/dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	# check amd/intel cpu mann
 }
 
 function choose_your_disk() {
@@ -40,13 +41,33 @@ function choose_your_disk() {
 	lsblk -o NAME,SIZE,MOUNTPOINTS,TYPE,FSTYPE
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
+	local PS3="Select disk: "
 	select disk in ${disks_list[@]} ; do
 		install_disk=$disk
-		break
+		[[ -n "$disk" ]] && break
 	done
 
 	[[ -n "$install_disk" && -e "$install_disk" ]] && return 0 || throw_error "Disk not found"
 }
 
+function partitioning() {
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+	echo "Partitioning"
+
+	echo "-> wipe & unmount all"
+	umount -R /mnt &> /dev/null
+	swapoff -a &> /dev/null
+	wipefs --force --all $install_disk &> /dev/null
+
+	echo -n "-> partition disk: "
+	sfdisk {{ install_drive }} << EOF
+label: gpt
+;512Mib;U;*
+;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
+;+;L
+EOF && echo -e "\e[32mOK\e[0m"
+}
+
 pre_checks
 choose_your_disk
+partitioning
