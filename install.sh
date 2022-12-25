@@ -1,18 +1,20 @@
 #!/bin/bash
 
 # local env
+user_account_name="leier"
+user_account_groups=("wheel" "users")
 install_disk=""
 packages_to_install=(
-	base base-devel linux-lts linux-lts-headers linux-firmware xfsprogs #required
-	vim mousepad # text editors
-	noto-fonts-cjk ttf-hack papirus-icon-theme # fonts, icon themes
-	firefox # browser of choice
-	flameshot # screenshot utility of choice
-	bash bash-completion zsh # shell
-	cmatrix neofetch htop # just for fun
-	curl git wget jq unzip # must have utils
-	man-db man-pages # man page support
-	lua luarocks python go # programing languages
+	"base" "base-devel" "linux-lts" "linux-lts-headers" "linux-firmware" "xfsprogs" #required
+	"vim" "mousepad" # text editors
+	"noto-fonts-cjk" "ttf-hack" "papirus-icon-theme" # fonts, icon themes
+	"firefox" # browser of choice
+	"flameshot" # screenshot utility of choice
+	"bash" "bash-completion" "zsh" # shell
+	"cmatrix" "neofetch" "htop" # just for fun
+	"curl" "git" "wget" "jq" "unzip" # must have utils
+	"man-db" "man-pages" # man page support
+	"lua" "luarocks" "python" "go" # programing languages
 )
 
 function throw_error() {
