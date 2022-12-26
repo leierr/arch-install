@@ -25,7 +25,6 @@ function throw_error() {
 
 function pre_checks () {
 	clear
-
 	echo -e "\033[1m:: Running pre-run checks ::\033[0m"
 	# verify boot mode
 	echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
@@ -57,22 +56,22 @@ function partitioning() {
 	echo -n "-> wipe & unmount all"
 	umount -R /mnt &> /dev/null
 	swapoff -a &> /dev/null
-	dd if=/dev/zero of=$install_disk bs=4k status=progress &> /dev/null
+	wipefs -af $1 &> /dev/null
 	echo -e "\e[32mOK\e[0m"
 
 	echo -n "-> partition disk: "
-	sfdisk $install_disk << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	sfdisk $1 << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 label: gpt
 ;512Mib;U;*
 ;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
 ;+;L
 EOF
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	sfdisk -lq $install_disk
+	sfdisk -lq $1
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
 	# registrer partitions
-	local disk_partitions=($(sfdisk -lq $install_disk | grep -Po '^/dev/.*?\s'))
+	local disk_partitions=($(sfdisk -lq $1 | grep -Po '^/dev/.*?\s'))
 	local boot_partition="${disk_partitions[0]}"
 	local extended_boot_partition="${disk_partitions[1]}"
 	local root_partition="${disk_partitions[2]}"
@@ -98,5 +97,5 @@ function pacstrap() {
 
 pre_checks
 choose_your_disk
-partitioning
+partitioning $install_disk
 pacstrap
