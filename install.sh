@@ -28,15 +28,14 @@ function pre_checks () {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
 	# verify boot mode
-	## TESTING PURPOSES
-	#echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check internet access
 	echo -n "-> Internet access: " ;  sleep 0.5 ; timeout 3 bash -c "</dev/tcp/archlinux.org/443" 2>/dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check amd/intel cpu mann
 }
 
 function choose_your_disk() {
-	local disks_list=($(lsblk -adrnp -o NAME -I 8,259,254))
+	local disks_list=($(lsblk -adrnp -o NAME -I 8,259,254,179 | grep -Pv "mmcblk\dboot\d"))
 
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	lsblk -o NAME,SIZE,MOUNTPOINTS,TYPE,FSTYPE
@@ -56,18 +55,36 @@ function partitioning() {
 	echo "Partitioning"
 
 	echo -n "-> wipe & unmount all"
-	umount -R /mnt &> /dev/null
-	swapoff -a &> /dev/null
-	wipefs --force --all $install_disk &> /dev/null
+	# testing. add back : &> /dev/null
+	umount -R
+	swapoff -a
+	wipefs --force --all $install_disk
 	sleep 1 ; echo -e "\e[32mOK\e[0m"
 
 	echo -n "-> partition disk: "
-	sfdisk $install_disk << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	sfdisk $install_disk << EOF 1> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 label: gpt
 ;512Mib;U;*
 ;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
 ;+;L
 EOF
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+	sfdisk -lq $install_disk
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+
+	# registrer partitions
+	local disk_partitions=($(sfdisk -lq $install_disk | grep -Po '^/dev/.*?\s'))
+	local boot_partition="${disk_partitions[0]}"
+	local extended_boot_partition="${disk_partitions[1]}"
+	local root_partition="${disk_partitions[2]}"
+	[[ ${#disk_partitions[@]} -eq 3 ]] || throw_error "Something went wrong during partitioning of disk"
+
+	# filesystems
+	echo -e "\033[1m:: Filesystems ::\033[0m"
+	echo -n " -> boot partition: " ; mkfs.fat -F 32 $boot_partition 1> /dev/null && echo -e "\e[32mOK\e[0m"
+	echo -n " -> extended boot partition: " ; mkfs.fat -F 32 $extended_boot_partition 1> /dev/null && echo -e "\e[32mOK\e[0m"
+	echo -n " -> root partition: " ; mkfs.xfs $root_partition && echo -e "\e[32mOK\e[0m"
+	echo -n " -> creating folders for mounting: " ; mkdir /mnt/{efi,boot} && echo -e "\e[32mOK\e[0m"
 }
 
 pre_checks
