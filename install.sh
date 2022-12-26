@@ -62,12 +62,12 @@ function partitioning() {
 	sleep 1
 
 	echo -n "-> partition disk: "
-	sfdisk $install_disk << EOF
+	sfdisk $install_disk &> /dev/null << EOF
 label: gpt
 ;512Mib;U;*
 ;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
 ;+;L
-EOF &> /dev/null
+EOF
 }
 
 pre_checks
