@@ -36,7 +36,7 @@ function pre_checks () {
 }
 
 function choose_your_disk() {
-	local disks_list=($(lsblk -adrnp -o NAME -I 8,259))
+	local disks_list=($(lsblk -adrnp -o NAME -I 8,259,254))
 
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	lsblk -o NAME,SIZE,MOUNTPOINTS,TYPE,FSTYPE
