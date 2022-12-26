@@ -42,8 +42,11 @@ function choose_your_disk() {
 
 	local PS3="Select disk: "
 	select disk in ${disks_list[@]} ; do
-		[[ -n "$disk" && -e "$disk" ]] && { echo $disk; return 0; } || throw_error "Disk not found"
+		install_disk=$disk
+		[[ -n "$disk" ]] && break
 	done
+
+	[[ -n "$install_disk" && -e "$install_disk" ]] && return 0 || throw_error "Disk not found"
 }
 
 function partitioning() {
@@ -96,5 +99,6 @@ function pacstrapping() {
 }
 
 pre_checks
-partitioning choose_your_disk
+choose_your_disk
+partitioning "$install_disk"
 pacstrapping
