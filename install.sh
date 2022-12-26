@@ -62,12 +62,12 @@ function partitioning() {
 	sleep 1
 
 	echo -n "-> partition disk: "
-	sfdisk $install_disk &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; } << EOF
-label: gpt
-;512Mib;U;*
-;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
-;+;L
-EOF
+	sfdisk $install_disk << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	label: gpt
+	;512Mib;U;*
+	;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
+	;+;L
+	EOF
 }
 
 pre_checks
