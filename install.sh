@@ -55,19 +55,19 @@ function partitioning() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo "Partitioning"
 
-	echo "-> wipe & unmount all"
+	echo -n "-> wipe & unmount all"
 	umount -R /mnt &> /dev/null
 	swapoff -a &> /dev/null
 	wipefs --force --all $install_disk &> /dev/null
-	sleep 1
+	sleep 1 ; echo -e "\e[32mOK\e[0m"
 
 	echo -n "-> partition disk: "
 	sfdisk $install_disk << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	label: gpt
-	;512Mib;U;*
-	;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
-	;+;L
-	EOF
+label: gpt
+;512Mib;U;*
+;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
+;+;L
+EOF
 }
 
 pre_checks
