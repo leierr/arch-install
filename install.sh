@@ -24,9 +24,7 @@ function throw_error() {
 }
 
 function pre_checks () {
-	echo -e "\e[33mRunning pre-run checks\e[0m"
-	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-
+	echo -e "\033[1m:: Running pre-run checks ::\033[0m\n"
 	# verify boot mode
 	echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check internet access
@@ -56,13 +54,13 @@ function partitioning() {
 
 	echo -n "-> wipe & unmount all"
 	# testing. add back : &> /dev/null
-	umount -R
-	swapoff -a
-	wipefs --force --all $install_disk
+	umount -R /mnt &> /dev/null
+	swapoff -a &> /dev/null
+	dd if=/dev/urandom of=$install_disk bs=4k &> /dev/null
 	sleep 1 ; echo -e "\e[32mOK\e[0m"
 
 	echo -n "-> partition disk: "
-	sfdisk $install_disk << EOF 1> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	sfdisk $install_disk << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 label: gpt
 ;512Mib;U;*
 ;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
@@ -80,10 +78,10 @@ EOF
 	[[ ${#disk_partitions[@]} -eq 3 ]] || throw_error "Something went wrong during partitioning of disk"
 
 	# filesystems
-	echo -e "\033[1m:: Filesystems ::\033[0m"
-	echo -n " -> boot partition: " ; mkfs.fat -F 32 $boot_partition 1> /dev/null && echo -e "\e[32mOK\e[0m"
-	echo -n " -> extended boot partition: " ; mkfs.fat -F 32 $extended_boot_partition 1> /dev/null && echo -e "\e[32mOK\e[0m"
-	echo -n " -> root partition: " ; mkfs.xfs $root_partition && echo -e "\e[32mOK\e[0m"
+	echo -e "\033[1m:: Filesystems ::\033[0m\n"
+	echo -n " -> boot partition: " ; mkfs.fat -IF 32 $boot_partition &> /dev/null && echo -e "\e[32mOK\e[0m"
+	echo -n " -> extended boot partition: " ; mkfs.fat -IF 32 $extended_boot_partition &> /dev/null && echo -e "\e[32mOK\e[0m"
+	echo -n " -> root partition: " ; mkfs.xfs -f $root_partition &> /dev/null && echo -e "\e[32mOK\e[0m"
 	echo -n " -> creating folders for mounting: " ; mkdir /mnt/{efi,boot} && echo -e "\e[32mOK\e[0m"
 }
 
