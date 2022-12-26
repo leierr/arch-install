@@ -27,9 +27,9 @@ function pre_checks () {
 	clear
 	echo -e "\033[1m:: Running pre-run checks ::\033[0m"
 	# verify boot mode
-	echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "-> UEFI bootmode: " ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check internet access
-	echo -n "-> Internet access: " ;  sleep 0.5 ; timeout 3 bash -c "</dev/tcp/archlinux.org/443" 2>/dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "-> Internet access: " ; timeout 3 bash -c "</dev/tcp/archlinux.org/443" 2>/dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check amd/intel cpu mann
 }
 
@@ -42,11 +42,8 @@ function choose_your_disk() {
 
 	local PS3="Select disk: "
 	select disk in ${disks_list[@]} ; do
-		install_disk=$disk
-		[[ -n "$disk" ]] && break
+		[[ -n "$disk" && -e "$disk" ]] && { echo $disk; return 0; } || throw_error "Disk not found"
 	done
-
-	[[ -n "$install_disk" && -e "$install_disk" ]] && return 0 || throw_error "Disk not found"
 }
 
 function partitioning() {
@@ -92,10 +89,12 @@ function pacstrapping() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: Pacstrap ::\033[0m"
 	echo -n " -> rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n " -> running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> install pacman.conf for live environment: " ; curl "https://raw.githubusercontent.com/leierr/arch-install/main/pacman.conf" > /etc/pacman.conf &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> sync and make sure latest archlinux keyring is present: " ; pacman -Syy archlinux-keyring --noconfirm &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 pre_checks
-choose_your_disk
-partitioning $install_disk
+partitioning choose_your_disk
 pacstrapping
