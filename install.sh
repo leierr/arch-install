@@ -61,7 +61,12 @@ function partitioning() {
 	wipefs --force --all $install_disk &> /dev/null
 
 	echo -n "-> partition disk: "
-	sfdisk $install_disk << EOF label: gpt ;512Mib;U;* ;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172 ;+;L EOF
+	sfdisk $install_disk << EOF
+label: gpt
+;512Mib;U;*
+;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
+;+;L
+EOF
 }
 
 pre_checks
