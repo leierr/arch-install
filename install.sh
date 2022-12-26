@@ -24,7 +24,9 @@ function throw_error() {
 }
 
 function pre_checks () {
-	echo -e "\033[1m:: Running pre-run checks ::\033[0m\n"
+	clear
+
+	echo -e "\033[1m:: Running pre-run checks ::\033[0m"
 	# verify boot mode
 	echo -n "-> UEFI bootmode: " ;  sleep 0.5 ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check internet access
@@ -55,7 +57,7 @@ function partitioning() {
 	echo -n "-> wipe & unmount all"
 	umount -R /mnt &> /dev/null
 	swapoff -a &> /dev/null
-	dd if=/dev/urandom of=$install_disk bs=4k &> /dev/null
+	dd if=/dev/zero of=$install_disk bs=4k status=progress &> /dev/null
 	echo -e "\e[32mOK\e[0m"
 
 	echo -n "-> partition disk: "
@@ -77,11 +79,14 @@ EOF
 	[[ ${#disk_partitions[@]} -eq 3 ]] || throw_error "Something went wrong during partitioning of disk"
 
 	# filesystems
-	echo -e "\033[1m:: Filesystems ::\033[0m\n"
-	echo -n " -> boot partition: " ; mkfs.fat -IF 32 $boot_partition &> /dev/null && echo -e "\e[32mOK\e[0m"
-	echo -n " -> extended boot partition: " ; mkfs.fat -IF 32 $extended_boot_partition &> /dev/null && echo -e "\e[32mOK\e[0m"
-	echo -n " -> root partition: " ; mkfs.xfs -f $root_partition &> /dev/null && echo -e "\e[32mOK\e[0m"
-	echo -n " -> creating folders for mounting: " ; mkdir /mnt/{efi,boot} && echo -e "\e[32mOK\e[0m"
+	echo -e "\033[1m:: Filesystems ::\033[0m"
+	echo -n " -> boot partition: " ; mkfs.fat -IF 32 $boot_partition &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> extended boot partition: " ; mkfs.fat -IF 32 $extended_boot_partition &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> root partition: " ; mkfs.xfs -f $root_partition &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> mounting root partition: " ; mount $root_partition /mnt && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> creating folders for mounting: " ; mkdir /mnt/{efi,boot} && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> mounting boot partition: " ; mount $boot_partition /mnt/efi && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> mounting extended boot partition: " ; mount $extended_boot_partition /mnt/boot && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 pre_checks
