@@ -53,11 +53,10 @@ function partitioning() {
 	echo "Partitioning"
 
 	echo -n "-> wipe & unmount all"
-	# testing. add back : &> /dev/null
 	umount -R /mnt &> /dev/null
 	swapoff -a &> /dev/null
 	dd if=/dev/urandom of=$install_disk bs=4k &> /dev/null
-	sleep 1 ; echo -e "\e[32mOK\e[0m"
+	echo -e "\e[32mOK\e[0m"
 
 	echo -n "-> partition disk: "
 	sfdisk $install_disk << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
