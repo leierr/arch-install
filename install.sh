@@ -66,7 +66,7 @@ label: gpt
 ;512Mib;U;*
 ;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
 ;+;L
-EOF && echo -e "\e[32mOK\e[0m"
+EOF # && echo -e "\e[32mOK\e[0m"
 }
 
 pre_checks
