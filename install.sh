@@ -92,7 +92,7 @@ function pacstrapping() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: Pacstrap ::\033[0m"
 	echo -n " -> rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n " -> running pacstrap: " pacstrap /mnt "${packages_to_install[@]}" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 pre_checks
