@@ -24,7 +24,6 @@ function throw_error() {
 }
 
 function pre_checks () {
-	clear
 	echo -e "\033[1m:: Running pre-run checks ::\033[0m"
 	# verify boot mode
 	echo -n "-> UEFI bootmode: " ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
@@ -60,12 +59,8 @@ function partitioning() {
 	echo -e "\e[32mOK\e[0m"
 
 	echo -n " -> partition disk: "
-	sfdisk $1 << EOF &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-label: gpt
-;512Mib;U;*
-;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172
-;+;L
-EOF
+	echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk $1 &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	sfdisk -lq $1
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
@@ -90,7 +85,7 @@ EOF
 	echo -n " -> make fstab: " ; (genfstab -U /mnt > /mnt/etc/fstab) && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
-function pacstrapping() {
+function pacstrap_and_configure_pacman() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: Pacstrap ::\033[0m"
 	echo -n " -> rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
@@ -98,9 +93,11 @@ function pacstrapping() {
 	echo -n " -> sync and make sure latest archlinux keyring is present: " ; pacman -Syy archlinux-keyring --noconfirm &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n " -> running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n " -> install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n " -> rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
+clear ; setfont ter-v22n
 pre_checks
 choose_your_disk
 partitioning "$install_disk"
-pacstrapping
+pacstrap_and_configure_pacman
