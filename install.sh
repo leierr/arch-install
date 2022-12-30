@@ -101,3 +101,7 @@ pre_checks
 choose_your_disk
 partitioning "$install_disk"
 pacstrap_and_configure_pacman
+
+#
+#### bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux - Autoinstall" install
+#
