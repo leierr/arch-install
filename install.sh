@@ -92,10 +92,10 @@ function pacstrap_and_configure_pacman() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: Pacstrap ::\033[0m"
 	echo -n "├── check cpu type for installing ucode: "
-	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] then
+	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] ; then
 		packages_to_install+=("amd-ucode")
 		echo -e "\e[31m\e[1mAMD\e[0m"
-	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] then
+	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] ; then
 		packages_to_install+=("intel-ucode")
 		echo -e "\e[34m\e[1mINTEL\e[0m"
 	else
@@ -117,9 +117,9 @@ function bootloader() {
 	echo -n "├── install systemd-boot config file: "
 	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
 	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
-	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] then
+	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] ; then
 		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw amd_iommu=on" > /mnt/boot/loader/entries/arch.conf
-	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] then
+	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] ; then
 		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw intel_iommu=on" > /mnt/boot/loader/entries/arch.conf
 	else
 		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\noptions root=\"LABEL=arch_os\" rw" > /mnt/boot/loader/entries/arch.conf
