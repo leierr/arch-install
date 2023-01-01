@@ -61,8 +61,7 @@ function partitioning() {
 	swapoff -a &>> "$logfile"
 	wipefs -af "$disk" &>> "$logfile"
 	echo -e "\e[32mOK\e[0m"
-	echo -n "├── partition disk: " ; echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk "$disk" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "└── label root partition: " ; xfs_admin -L "arch_os" "$disk" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── partition disk: " ; echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk "$disk" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	sfdisk -lq "$disk"
@@ -79,7 +78,7 @@ function partitioning() {
 	echo -e "\033[1m:: Filesystems ::\033[0m"
 	echo -n "├── boot partition: " ; mkfs.fat -IF 32 "$boot_partition" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── extended boot partition: " ; mkfs.fat -IF 32 "$extended_boot_partition" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── root partition: " ; mkfs.xfs -f "$root_partition" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── root partition: " ; mkfs.xfs -fL "arch_os" "$root_partition" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── mounting root partition: " ; mount "$root_partition" /mnt && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── creating folders for mounting: " ; mkdir /mnt/{efi,boot} && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── mounting boot partition: " ; mount "$boot_partition" /mnt/efi && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
