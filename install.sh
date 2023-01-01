@@ -126,13 +126,10 @@ function bootloader() {
 	fi
 }
 
-function configure_users_and_groups() {}
-
-function configure_locale() {}
-
-function configure_sudoers() {}
-
-function configure_network() {}
+# function configure_users_and_groups() {}
+# function configure_locale() {}
+# function configure_sudoers() {}
+# function configure_network() {}
 
 clear ; setfont ter-v22n
 echo "-------------------| $(TZ='Europe/Oslo' date '+%d/%m/%y %H:%M') |-------------------" >> "$logfile"
