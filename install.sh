@@ -4,7 +4,6 @@
 user_account_name="leier"
 user_account_groups=("adm" "wheel")
 install_disk="$1"
-ucode=""
 packages_to_install=(
 	"base" "base-devel" "linux-lts" "linux-lts-headers" "linux-firmware" "xfsprogs" #required
 	"vim" "mousepad" # text editors
@@ -37,7 +36,7 @@ function pre_checks () {
 function choose_your_disk() {
 	local disk_list=($(lsblk -adrnp -o NAME -I 8,259,254,179 | grep -Pv "mmcblk\dboot\d"))
 
-	[[ -n "$install_disk" && -e "$install_disk" && "$disk_list[@]" =~ "$install_disk" ]] && return 0
+	[[ -n "$install_disk" && -e "$install_disk" && -b "$install_disk" ]] && return 0
 
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	lsblk -o NAME,SIZE,MOUNTPOINTS,TYPE,FSTYPE
@@ -45,7 +44,7 @@ function choose_your_disk() {
 
 	local PS3="Select disk: "
 	select disk in ${disk_list[@]} ; do
-		[[ -n "$disk" && -e "$disk" ]] && break
+		[[ -n "$disk" && -e "$disk" && -b "$disk" ]] && break
 	done
 
     install_disk="$disk"
@@ -60,18 +59,17 @@ function partitioning() {
 	echo -n "├── wipe & unmount all: "
 	umount -R /mnt &>> $"logfile"
 	swapoff -a &>> $"logfile"
-	wipefs -af $disk &>> $"logfile"
+	wipefs -af "$disk" &>> $"logfile"
 	echo -e "\e[32mOK\e[0m"
-
-	echo -n "└── partition disk: "
-	echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk $disk &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── partition disk: " ; echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk "$disk" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── label root partition: " ; xfs_admin -L "arch_os" "$disk" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	sfdisk -lq $disk
+	sfdisk -lq "$disk"
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
 	# registrer partitions
-	local disk_partitions=($(sfdisk -lq $disk | grep -Po '^/dev/.*?\s'))
+	local disk_partitions=($(sfdisk -lq "$disk" | grep -Po '^/dev/.*?\s'))
 	local boot_partition="${disk_partitions[0]}"
 	local extended_boot_partition="${disk_partitions[1]}"
 	local root_partition="${disk_partitions[2]}"
@@ -79,13 +77,13 @@ function partitioning() {
 
 	# filesystems
 	echo -e "\033[1m:: Filesystems ::\033[0m"
-	echo -n "├── boot partition: " ; mkfs.fat -IF 32 $boot_partition &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── extended boot partition: " ; mkfs.fat -IF 32 $extended_boot_partition &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── root partition: " ; mkfs.xfs -f $root_partition &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── mounting root partition: " ; mount $root_partition /mnt && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── boot partition: " ; mkfs.fat -IF 32 "$boot_partition" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── extended boot partition: " ; mkfs.fat -IF 32 "$extended_boot_partition" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── root partition: " ; mkfs.xfs -f "$root_partition" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── mounting root partition: " ; mount "$root_partition" /mnt && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── creating folders for mounting: " ; mkdir /mnt/{efi,boot} && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── mounting boot partition: " ; mount $boot_partition /mnt/efi && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── mounting extended boot partition: " ; mount $extended_boot_partition /mnt/boot && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── mounting boot partition: " ; mount "$boot_partition" /mnt/efi && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── mounting extended boot partition: " ; mount "$extended_boot_partition" /mnt/boot && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── create etcetera directory: " ; (mkdir /mnt/etc ; chown root:root /mnt/etc ; chmod 0755 /mnt/etc) && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "└── make fstab: " ; (genfstab -U /mnt > /mnt/etc/fstab) && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
@@ -95,10 +93,10 @@ function pacstrap_and_configure_pacman() {
 	echo -e "\033[1m:: Pacstrap ::\033[0m"
 	echo -n "├── check cpu type for installing ucode: "
 	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] then
-		ucode="amd"
+		packages_to_install+=("amd-ucode")
 		echo -e "\e[31m\e[1mAMD\e[0m"
 	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] then
-		ucode="intel"
+		packages_to_install+=("intel-ucode")
 		echo -e "\e[34m\e[1mINTEL\e[0m"
 	else
 		echo -e "\e[1m\e[4mN/A\e[0m"
@@ -115,7 +113,17 @@ function bootloader() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: systemd-boot ::\033[0m"
 	[[ -e "/mnt/efi" && -e "/mnt/boot" ]] || throw_error "ESP or exteded boot partition does not exist or is not mounted"
-	bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux - Autoinstall" install &>> $"logfile" || throw_error "Something went wrong while installing systemd-boot"
+	echo -n "├── install systemd-boot: " ; bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux - Autoinstall" install &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install systemd-boot config file: "
+	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
+	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
+	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] then
+		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw amd_iommu=on" > /mnt/boot/loader/entries/arch.conf
+	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] then
+		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw intel_iommu=on" > /mnt/boot/loader/entries/arch.conf
+	else
+		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\noptions root=\"LABEL=arch_os\" rw" > /mnt/boot/loader/entries/arch.conf
+	fi
 }
 
 function configure_users_and_groups() {}
@@ -133,15 +141,3 @@ choose_your_disk
 partitioning "$install_disk"
 pacstrap_and_configure_pacman
 bootloader
-
-/boot/loader/entries/arch.conf
-root root 755
-
-/boot/loader/entries
-root root 755
-
-/boot/loader
-root root 755
-
-/boot
-root root 755
