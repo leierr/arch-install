@@ -16,7 +16,7 @@ packages_to_install=(
 	"man-db" "man-pages" # man page support
 	"lua" "luarocks" "python" "go" # programing languages
 )
-logfile="/tmp/arch_install_error.log"
+logfile="/tmp/arch_install.log"
 
 function throw_error() {
 	echo -e "\n\e[31mSomething went wrong!\e[0m"
