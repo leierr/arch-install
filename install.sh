@@ -29,7 +29,7 @@ function pre_checks () {
 	# verify boot mode
 	echo -n "├── UEFI bootmode: " ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check internet access
-	echo -n "└── Internet access: " ; timeout 3 bash -c "</dev/tcp/archlinux.org/443" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── Internet access: " ; timeout 3 bash -c "</dev/tcp/archlinux.org/443" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check amd/intel cpu mann
 }
 
@@ -57,12 +57,12 @@ function partitioning() {
 	echo -e "\033[1m:: Partitioning ::\033[0m"
 
 	echo -n "├── wipe & unmount all: "
-	umount -R /mnt &>> $"logfile"
-	swapoff -a &>> $"logfile"
-	wipefs -af "$disk" &>> $"logfile"
+	umount -R /mnt &>> "$logfile"
+	swapoff -a &>> "$logfile"
+	wipefs -af "$disk" &>> "$logfile"
 	echo -e "\e[32mOK\e[0m"
-	echo -n "├── partition disk: " ; echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk "$disk" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "└── label root partition: " ; xfs_admin -L "arch_os" "$disk" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── partition disk: " ; echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk "$disk" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── label root partition: " ; xfs_admin -L "arch_os" "$disk" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	sfdisk -lq "$disk"
@@ -77,9 +77,9 @@ function partitioning() {
 
 	# filesystems
 	echo -e "\033[1m:: Filesystems ::\033[0m"
-	echo -n "├── boot partition: " ; mkfs.fat -IF 32 "$boot_partition" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── extended boot partition: " ; mkfs.fat -IF 32 "$extended_boot_partition" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── root partition: " ; mkfs.xfs -f "$root_partition" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── boot partition: " ; mkfs.fat -IF 32 "$boot_partition" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── extended boot partition: " ; mkfs.fat -IF 32 "$extended_boot_partition" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── root partition: " ; mkfs.xfs -f "$root_partition" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── mounting root partition: " ; mount "$root_partition" /mnt && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── creating folders for mounting: " ; mkdir /mnt/{efi,boot} && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── mounting boot partition: " ; mount "$boot_partition" /mnt/efi && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
@@ -101,19 +101,19 @@ function pacstrap_and_configure_pacman() {
 	else
 		echo -e "\e[1m\e[4mN/A\e[0m"
 	fi
-	echo -n "├── rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install pacman.conf for live environment: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/pacman.conf" > /etc/pacman.conf) &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── sync and make sure latest archlinux keyring is present: " ; pacman -Syy archlinux-keyring --noconfirm &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "└── rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install pacman.conf for live environment: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/pacman.conf" > /etc/pacman.conf) &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── sync and make sure latest archlinux keyring is present: " ; pacman -Syy archlinux-keyring --noconfirm &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 function bootloader() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: systemd-boot ::\033[0m"
 	[[ -e "/mnt/efi" && -e "/mnt/boot" ]] || throw_error "ESP or exteded boot partition does not exist or is not mounted"
-	echo -n "├── install systemd-boot: " ; bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux - Autoinstall" install &>> $"logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install systemd-boot: " ; bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux - Autoinstall" install &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── install systemd-boot config file: "
 	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
 	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
