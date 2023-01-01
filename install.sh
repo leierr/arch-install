@@ -117,11 +117,11 @@ function bootloader() {
 	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
 	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
 	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] ; then
-		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw amd_iommu=on" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw amd_iommu=on\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] ; then
-		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw intel_iommu=on" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw intel_iommu=on\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	else
-		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\ninitrd /initramfs-linux-fallback.img\noptions root=\"LABEL=arch_os\" rw" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+		echo -e "title Arch Linux\nlinux /vmlinuz-linux\ninitrd /initramfs-linux.img\noptions root=\"LABEL=arch_os\" rw\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	fi
 }
 
