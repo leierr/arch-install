@@ -112,7 +112,7 @@ function bootloader() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: systemd-boot ::\033[0m"
 	[[ -e "/mnt/efi" && -e "/mnt/boot" ]] || throw_error "ESP or exteded boot partition does not exist or is not mounted"
-	echo -n "├── install systemd-boot: " ; bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux - Autoinstall" install &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install systemd-boot: " ; bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux" install &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "└── install systemd-boot config file: "
 	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
 	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
