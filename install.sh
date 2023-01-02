@@ -142,6 +142,9 @@ function configure_users_and_groups() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: configure users and groups ::\033[0m"
 	echo -n "├── create user $user_account_name: " ; 
+	for i in "${user_account_groups[@]}"; do
+		[[ $(arch-chroot /mnt getent group "$i") ]] || { arch-chroot /mnt groupadd "$i" ; echo "created user $i" >> "$logfile" ; }
+	done
 	local useradd_command=("arch-chroot /mnt useradd "$user_account_name" -m")
 	[[ -n "${user_account_groups[@]}" ]] && useradd_command+=("-G" "$(echo "${user_account_groups[@]}" | tr ' ' ',')")
 	[[ -n "$user_account_home" ]] && useradd_command+=("-d" "$user_account_home")
