@@ -149,7 +149,7 @@ function configure_users_and_groups() {
 	[[ -n "$user_account_uid" ]] && useradd_command+=("-u" "$user_account_uid")
 	[[ -n "$user_account_gid" ]] && useradd_command+=("-g" "$user_account_gid")
 	[[ -n "$user_account_comment" ]] && useradd_command+=("-c" "'$user_account_comment'")
-	"${useradd_command[@]}"
+	${useradd_command[@]} &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 # function configure_locale() {}
