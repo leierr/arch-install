@@ -3,19 +3,30 @@
 # local env
 user_account_name="leier"
 user_account_groups=("adm" "wheel")
+user_account_home="" # default /home/username
+user_account_shell="" # default bash
+user_account_comment=""
+user_account_uid=""
+user_account_gid=""
+# --- #
+ucode=""
+# --- #
 install_disk="$1"
-packages_to_install=(
+# --- #
+declare -a packages_to_install=(
 	"base" "base-devel" "linux-lts" "linux-lts-headers" "linux-firmware" "xfsprogs" #required
 	"vim" "mousepad" # text editors
 	"noto-fonts-cjk" "ttf-hack" "papirus-icon-theme" # fonts, icon themes
 	"firefox" # browser of choice
 	"flameshot" # screenshot utility of choice
 	"bash" "bash-completion" "starship" # shell
+	"networkmanager" # network managment
 	"cmatrix" "neofetch" "htop" # just for fun
 	"curl" "git" "wget" "jq" "unzip" # must have utils
 	"man-db" "man-pages" # man page support
 	"lua" "luarocks" "python" "go" # programing languages
 )
+# --- #
 logfile="/tmp/arch_install.log"
 
 function throw_error() {
@@ -93,9 +104,11 @@ function pacstrap_and_configure_pacman() {
 	echo -n "├── check cpu type for installing ucode: "
 	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] ; then
 		packages_to_install+=("amd-ucode")
+		ucode="amd"
 		echo -e "\e[31m\e[1mAMD\e[0m"
 	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] ; then
 		packages_to_install+=("intel-ucode")
+		ucode="intel"
 		echo -e "\e[34m\e[1mINTEL\e[0m"
 	else
 		echo -e "\e[1m\e[4mN/A\e[0m"
@@ -105,7 +118,9 @@ function pacstrap_and_configure_pacman() {
 	echo -n "├── sync: " ; pacman -Syy --noconfirm &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "└── rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── initialize pacman keyring for new system: " ; arch-chroot /mnt pacman-key --init &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── Populate pacman keyring for new system: " ; arch-chroot /mnt pacman-key --populate archlinux &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 function bootloader() {
@@ -116,16 +131,27 @@ function bootloader() {
 	echo -n "└── install systemd-boot config file: "
 	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
 	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
-	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] ; then
-		echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw amd_iommu=on\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] ; then
-		echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw intel_iommu=on\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	else
-		echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\noptions root=\"LABEL=arch_os\" rw\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	fi
+	case $ucode in
+		amd) echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw amd_iommu=on\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; } ;;
+		intel) echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw intel_iommu=on\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; } ;;
+		*) echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\noptions root=\"LABEL=arch_os\" rw\n" > /mnt/boot/loader/entries/arch.conf && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; } ;;
+	esac
 }
 
-# function configure_users_and_groups() {}
+function configure_users_and_groups() {
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+	echo -e "\033[1m:: configure users and groups ::\033[0m"
+	echo -n "├── create user $user_account_name: " ; 
+	local useradd_command=("arch-chroot /mnt useradd "$user_account_name" -m")
+	[[ -n "${user_account_groups[@]}" ]] && useradd_command+=("-G" "$(echo "${user_account_groups[@]}" | tr ' ' ',')")
+	[[ -n "$user_account_home" ]] && useradd_command+=("-d" "$user_account_home")
+	[[ -n "$user_account_shell" ]] && useradd_command+=("-s" "$user_account_shell") || useradd_command+=("-s" "/bin/bash")
+	[[ -n "$user_account_uid" ]] && useradd_command+=("-u" "$user_account_uid")
+	[[ -n "$user_account_gid" ]] && useradd_command+=("-g" "$user_account_gid")
+	[[ -n "$user_account_comment" ]] && useradd_command+=("-c" "'$user_account_comment'")
+	"${useradd_command[@]}"
+}
+
 # function configure_locale() {}
 # function configure_sudoers() {}
 # function configure_network() {}
@@ -137,3 +163,4 @@ choose_your_disk
 partitioning "$install_disk"
 pacstrap_and_configure_pacman
 bootloader
+configure_users_and_groups
