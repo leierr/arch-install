@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# local env
 user_account_name="leier"
 user_account_groups=("adm" "wheel")
 user_account_home="" # default /home/username
@@ -8,6 +7,7 @@ user_account_shell="" # default bash
 user_account_comment=""
 user_account_uid=""
 user_account_gid=""
+user_account_sudo_nopw=true
 # --- #
 ucode=""
 # --- #
@@ -138,6 +138,19 @@ function bootloader() {
 	esac
 }
 
+function configure_network() {
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+	echo -e "\033[1m:: network ::\033[0m"
+	echo -n "├── install /etc/NetworkManager/NetworkManager.conf: "
+	
+	mkdir -m 0755 /mnt/etc/NetworkManager &> /dev/null ; chown root:root /mnt/etc/NetworkManager &> /dev/null
+	echo -e "[main]\nplugins= \nno-auto-default=*\n" > /mnt/etc/NetworkManager/NetworkManager.conf || { echo -e "\e[31merr\e[0m"; exit 1; }
+	chmod 0644 /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null ; chown root:root /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null
+	echo -e "\e[32mOK\e[0m"
+	
+	echo -n "└── enable NetworkManager service: " ; arch-chroot /mnt systemctl enable NetworkManager && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+}
+
 function configure_users_and_groups() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: configure users and groups ::\033[0m"
@@ -163,12 +176,17 @@ function configure_locale() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: locale ::\033[0m"
 	echo -n "├── install /etc/locale.gen: " ; echo -e "en_US.UTF-8 UTF-8\nnb_NO.UTF-8 UTF-8\n" > /mnt/etc/locale.gen && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install /etc/locale.conf: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.gen) &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install /etc/locale.conf: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.conf) &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "└── generate locale: " ; arch-chroot /mnt locale-gen &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
-# function configure_sudoers() {}
-# function configure_network() {}
+function configure_sudoers() {
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+	echo -e "\033[1m:: sudoers ::\033[0m"
+	echo -n "└── install /etc/sudoers: " ; echo -e "root ALL=(ALL) ALL\nDefaults editor=/bin/vim\nDefaults timestamp_timeout=10\n%wheel ALL=(ALL) NOPASSWD: ALL" > /mnt/etc/sudoers && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+}
+
+
 
 clear ; setfont ter-v22n
 echo "-------------------| $(TZ='Europe/Oslo' date '+%d/%m/%y %H:%M') |-------------------" >> "$logfile"
@@ -177,5 +195,7 @@ choose_your_disk
 partitioning "$install_disk"
 pacstrap_and_configure_pacman
 bootloader
+configure_network
 configure_users_and_groups
 configure_locale
+configure_sudoers
