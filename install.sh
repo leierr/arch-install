@@ -11,7 +11,7 @@ user_account_gid=""
 # --- #
 ucode=""
 # --- #
-install_disk="$1"
+install_disk="${1}"
 # --- #
 declare -a packages_to_install=(
 	"base" "base-devel" "linux-lts" "linux-lts-headers" "linux-firmware" "xfsprogs" #required
@@ -31,7 +31,7 @@ logfile="/tmp/arch_install.log"
 
 function throw_error() {
 	echo -e "\n\e[31mSomething went wrong!\e[0m"
-	echo -e "\e[33m$1\e[0m"
+	echo -e "\e[33m${1}\e[0m"
 	exit 1
 }
 
@@ -63,12 +63,12 @@ function choose_your_disk() {
 }
 
 function partitioning() {
-	local disk="$1"
+	local disk="${1}"
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: Partitioning ::\033[0m"
 
 	echo -n "├── wipe & unmount all: "
-	umount -R /mnt &>> "$logfile"
+	umount -AR /mnt &>> "$logfile"
 	swapoff -a &>> "$logfile"
 	wipefs -af "$disk" &>> "$logfile"
 	echo -e "\e[32mOK\e[0m"
@@ -141,21 +141,32 @@ function bootloader() {
 function configure_users_and_groups() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: configure users and groups ::\033[0m"
-	echo -n "├── create user $user_account_name: " ; 
+	echo -n "└── create user $user_account_name: " ;
+
 	for i in "${user_account_groups[@]}"; do
-		[[ $(arch-chroot /mnt getent group "$i") ]] || { arch-chroot /mnt groupadd "$i" ; echo "created user $i" >> "$logfile" ; }
+		[[ $(arch-chroot /mnt getent group "$i") ]] || { arch-chroot /mnt groupadd "$i" ; echo "created group $i" >> "$logfile" ; }
 	done
+
 	local useradd_command=("arch-chroot /mnt useradd "$user_account_name" -m")
+
 	[[ -n "${user_account_groups[@]}" ]] && useradd_command+=("-G" "$(echo "${user_account_groups[@]}" | tr ' ' ',')")
 	[[ -n "$user_account_home" ]] && useradd_command+=("-d" "$user_account_home")
 	[[ -n "$user_account_shell" ]] && useradd_command+=("-s" "$user_account_shell") || useradd_command+=("-s" "/bin/bash")
 	[[ -n "$user_account_uid" ]] && useradd_command+=("-u" "$user_account_uid")
 	[[ -n "$user_account_gid" ]] && useradd_command+=("-g" "$user_account_gid")
 	[[ -n "$user_account_comment" ]] && useradd_command+=("-c" "'$user_account_comment'")
+
 	${useradd_command[@]} &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
-# function configure_locale() {}
+function configure_locale() {
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
+	echo -e "\033[1m:: locale ::\033[0m"
+	echo -n "├── install /etc/locale.gen: " ; echo -e "en_US.UTF-8 UTF-8\nnb_NO.UTF-8 UTF-8\n" > /mnt/etc/locale.gen && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install /etc/locale.conf: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.gen) &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── generate locale: " ; arch-chroot /mnt locale-gen &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+}
+
 # function configure_sudoers() {}
 # function configure_network() {}
 
@@ -167,3 +178,4 @@ partitioning "$install_disk"
 pacstrap_and_configure_pacman
 bootloader
 configure_users_and_groups
+configure_locale
