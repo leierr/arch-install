@@ -36,7 +36,7 @@ function throw_error() {
 }
 
 function pre_checks () {
-	echo -e "\033[1m:: Running pre-run checks ::\033[0m"
+	echo -e "┌── \033[1m:: Running pre-run checks ::\033[0m"
 	# verify boot mode
 	echo -n "├── UEFI bootmode: " ; [[ -e /sys/firmware/efi/efivars ]] && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	# check internet access
@@ -65,7 +65,7 @@ function choose_your_disk() {
 function partitioning() {
 	local disk="${1}"
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	echo -e "\033[1m:: Partitioning ::\033[0m"
+	echo -e "┌── \033[1m:: Partitioning ::\033[0m"
 
 	echo -n "├── wipe & unmount all: "
 	umount -AR /mnt &>> "$logfile"
@@ -100,7 +100,7 @@ function partitioning() {
 
 function pacstrap_and_configure_pacman() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	echo -e "\033[1m:: Pacstrap ::\033[0m"
+	echo -e "┌── \033[1m:: Pacstrap ::\033[0m"
 	echo -n "├── check cpu type for installing ucode: "
 	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] ; then
 		packages_to_install+=("amd-ucode")
@@ -125,7 +125,7 @@ function pacstrap_and_configure_pacman() {
 
 function bootloader() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	echo -e "\033[1m:: systemd-boot ::\033[0m"
+	echo -e "┌── \033[1m:: systemd-boot ::\033[0m"
 	[[ -e "/mnt/efi" && -e "/mnt/boot" ]] || throw_error "ESP or exteded boot partition does not exist or is not mounted"
 	echo -n "├── install systemd-boot: " ; bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux" install &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "└── install systemd-boot config file: "
@@ -140,7 +140,7 @@ function bootloader() {
 
 function configure_users_and_groups() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	echo -e "\033[1m:: configure users and groups ::\033[0m"
+	echo -e "┌── \033[1m:: configure users and groups ::\033[0m"
 	echo -n "└── create user $user_account_name: " ;
 
 	for i in "${user_account_groups[@]}"; do
@@ -161,7 +161,7 @@ function configure_users_and_groups() {
 
 function configure_locale() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	echo -e "\033[1m:: locale ::\033[0m"
+	echo -e "┌── \033[1m:: locale ::\033[0m"
 	echo -n "├── install /etc/locale.gen: " ; echo -e "en_US.UTF-8 UTF-8\nnb_NO.UTF-8 UTF-8\n" > /mnt/etc/locale.gen && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── install /etc/locale.conf: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.gen) &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "└── generate locale: " ; arch-chroot /mnt locale-gen &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
