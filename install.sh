@@ -142,7 +142,7 @@ function configure_network() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: network ::\033[0m"
 	echo -n "├── install /etc/NetworkManager/NetworkManager.conf: "
-	
+
 	mkdir -m 0755 /mnt/etc/NetworkManager &> /dev/null ; chown root:root /mnt/etc/NetworkManager &> /dev/null
 	echo -e "[main]\nplugins= \nno-auto-default=*\n" > /mnt/etc/NetworkManager/NetworkManager.conf || { echo -e "\e[31merr\e[0m"; exit 1; }
 	chmod 0644 /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null ; chown root:root /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null
@@ -185,8 +185,6 @@ function configure_sudoers() {
 	echo -e "\033[1m:: sudoers ::\033[0m"
 	echo -n "└── install /etc/sudoers: " ; echo -e "root ALL=(ALL) ALL\nDefaults editor=/bin/vim\nDefaults timestamp_timeout=10\n%wheel ALL=(ALL) NOPASSWD: ALL" > /mnt/etc/sudoers && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
-
-
 
 clear ; setfont ter-v22n
 echo "-------------------| $(TZ='Europe/Oslo' date '+%d/%m/%y %H:%M') |-------------------" >> "$logfile"
