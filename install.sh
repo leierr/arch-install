@@ -236,10 +236,10 @@ function configure_network() {
 function configure_users_and_groups() {
 	echo -e "\033[1m:: configure users and groups ::\033[0m"
 
-	echo -n "└── create user $user_account_name: " ;
+	echo -n "├── create user: $user_account_name"
 
 	for i in "${user_account_groups[@]}"; do
-		[[ $(arch-chroot /mnt getent group "$i") ]] || arch-chroot /mnt groupadd "$i" || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── create user $user_account_name: "; exit 1; }
+		[[ $(arch-chroot /mnt getent group "$i") ]] || arch-chroot /mnt groupadd "$i" || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── create user: $user_account_name"; exit 1; }
 	done
 
 	local useradd_command=("arch-chroot /mnt useradd "$user_account_name" -m")
@@ -249,8 +249,12 @@ function configure_users_and_groups() {
 	[[ -n "$user_account_shell" ]] && useradd_command+=("-s" "$user_account_shell") || useradd_command+=("-s" "/bin/bash")
 	[[ -n "$user_account_comment" ]] && useradd_command+=("-c" "'$user_account_comment'")
 
-	${useradd_command[@]} &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── create user $user_account_name: "; exit 1; }
-	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── create user $user_account_name: "
+	${useradd_command[@]} &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── create user: $user_account_name"; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── create user: $user_account_name"
+
+	echo -n "└── unlock user: $user_account_name"
+	passwd -d "$user_account_name" || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── unlock user: $user_account_name"; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── unlock user: $user_account_name"
 }
 
 function configure_locale() {
