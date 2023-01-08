@@ -43,6 +43,7 @@ function choose_your_disk() {
 	[[ -n "${1}" && -e "${1}" && -b "${1}" && ! $(lsblk -dnpo NAME,FSTYPE | grep -P "${1}\s+iso") ]] && return 0
 
 	# pretty print disks
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	lsblk -o NAME,SIZE,MOUNTPOINTS,TYPE
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
@@ -58,6 +59,7 @@ function choose_your_disk() {
 	select disk in ${disk_list[@]} ; do
 		[[ -n "$disk" && -e "$disk" && -b "$disk" ]] && break
 	done
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
     install_disk="$disk"
     return 0
