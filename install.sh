@@ -42,6 +42,7 @@ function choose_your_disk() {
 	[[ -n "${1}" && -e "${1}" && -b "${1}" && ! $(lsblk -dnpo NAME,FSTYPE | grep -P "${1}\s+iso") ]] && return 0
 
 	lsblk -o NAME,SIZE,MOUNTPOINTS,TYPE
+	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
 	local PS3="Select disk: "
 	select disk in ${disk_list[@]} ; do
@@ -67,10 +68,6 @@ function partitioning() {
 	echo -n "└── partition disk: "
 	echo -e "label: gpt\n;512Mib;U;*\n;512Mib;BC13C2FF-59E6-4262-A352-B275FD6F7172\n;+;L" | sfdisk "$disk" &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── partition disk: "; exit 1; }
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── partition disk: "
-
-	#printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-	#sfdisk -lq "$disk"
-	#printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
 	# registrer partitions
 	local disk_partitions=($(sfdisk -lq "$disk" | grep -Po '^/dev/.*?\s'))
