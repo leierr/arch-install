@@ -261,7 +261,7 @@ function configure_locale() {
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install /etc/locale.gen: "
 
 	echo -n "├── install /etc/locale.conf: "
-	curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.conf || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install /etc/locale.conf: "; exit 1; }
+	curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" &>/dev/null > /mnt/etc/locale.conf || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install /etc/locale.conf: "; exit 1; }
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install /etc/locale.conf: "
 
 	echo -n "└── generate locale: "
