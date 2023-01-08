@@ -39,14 +39,25 @@ function pre_checks () {
 function choose_your_disk() {
 	local disk_list=($(lsblk -dnpo NAME -I 8,259,254,179 | grep -Pv "mmcblk\dboot\d"))
 
+	# checks if disk was supplied through arguments
 	[[ -n "${1}" && -e "${1}" && -b "${1}" && ! $(lsblk -dnpo NAME,FSTYPE | grep -P "${1}\s+iso") ]] && return 0
 
+	# pretty print disks
 	lsblk -o NAME,SIZE,MOUNTPOINTS,TYPE
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
+	# remove arch iso from disk list
+	for i in ${!disk_list[@]} ; do
+		local archiso=$(lsblk -dnpo NAME,FSTYPE | grep -Po "/dev/[a-z]*(?=\s+iso)")
+		if [ "${disk_list[$i]}" == "$archiso" ]; then
+			echo "${disk_list[$i]}" "---" "$archiso"
+			unset disk_list[$i]
+		fi
+	done
+
 	local PS3="Select disk: "
 	select disk in ${disk_list[@]} ; do
-		[[ -n "$disk" && -e "$disk" && -b "$disk" && ! $(lsblk -dnpo NAME,FSTYPE | grep -P "$disk\s+iso") ]] && break
+		[[ -n "$disk" && -e "$disk" && -b "$disk" ]] && break
 	done
 
     install_disk="$disk"
@@ -130,7 +141,7 @@ function pacstrap_and_configure_pacman() {
 
 		"GenuineIntel")
 			packages_to_install+=("intel-ucode")
-			printf "\r%*s\033[1m\e[34m%s\e[0m\033[0m%s\r%s\n" $(($(tput cols) - 6)) "[" "INTEL" "]" "├── check cpu type for installing ucode: "
+			printf "\r%*s\033[1m\e[34m%s\e[0m\033[0m%s\r%s\n" $(($(tput cols) - 7)) "[ " "INTEL" " ]" "├── check cpu type for installing ucode: "
 			;;
 
 		*)
@@ -204,11 +215,12 @@ function bootloader() {
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── install systemd-boot config file: "
 }
 
-# good so far
+# great so far
 
 function configure_network() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: network ::\033[0m"
+
 	echo -n "├── install /etc/NetworkManager/NetworkManager.conf: "
 
 	mkdir -m 0755 /mnt/etc/NetworkManager &> /dev/null ; chown root:root /mnt/etc/NetworkManager &> /dev/null
