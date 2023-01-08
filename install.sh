@@ -7,6 +7,8 @@ user_account_shell="" # default bash
 user_account_comment=""
 user_account_sudo_nopw=true # IMPLEMENT DA
 # --- #
+install_disk=""
+# --- #
 declare -a packages_to_install=(
 	"base" "base-devel" "linux-lts" "linux-lts-headers" "linux-firmware" "xfsprogs" #required
 	"vim" "mousepad" # text editors
@@ -46,7 +48,7 @@ function choose_your_disk() {
 		[[ -n "$disk" && -e "$disk" && -b "$disk" && ! $(lsblk -dnpo NAME,FSTYPE | grep -P "$disk\s+iso") ]] && break
 	done
 
-    echo -n "$disk"
+    install_disk="$disk"
     return 0
 }
 
@@ -215,10 +217,10 @@ function configure_sudoers() {
 }
 
 clear ; setfont ter-v22b
-printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 pre_checks
 printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
-partitioning <(choose_your_disk "${1}")
+choose_your_disk "${1}"
+partitioning "$install_disk"
 pacstrap_and_configure_pacman
 bootloader
 configure_network
