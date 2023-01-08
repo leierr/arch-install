@@ -134,13 +134,13 @@ function pacstrap_and_configure_pacman() {
 	else
 		echo -e "\e[1m\e[4mN/A\e[0m"
 	fi
-	echo -n "├── rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install pacman.conf for live environment: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/pacman.conf" > /etc/pacman.conf) &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── sync: " ; pacman -Syy --noconfirm &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install pacman.conf for live environment: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/pacman.conf" > /etc/pacman.conf) &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── sync: " ; pacman -Syy --noconfirm &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "├── running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── initialize pacman keyring for new system: " ; arch-chroot /mnt pacman-key --init &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── initialize pacman keyring for new system: " ; arch-chroot /mnt pacman-key --init &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 	echo -n "└── Populate pacman keyring for new system: " ; arch-chroot /mnt pacman-key --populate archlinux &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
@@ -200,15 +200,15 @@ function configure_users_and_groups() {
 	[[ -n "$user_account_shell" ]] && useradd_command+=("-s" "$user_account_shell") || useradd_command+=("-s" "/bin/bash")
 	[[ -n "$user_account_comment" ]] && useradd_command+=("-c" "'$user_account_comment'")
 
-	${useradd_command[@]} &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	${useradd_command[@]} &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 function configure_locale() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: locale ::\033[0m"
 	echo -n "├── install /etc/locale.gen: " ; echo -e "en_US.UTF-8 UTF-8\nnb_NO.UTF-8 UTF-8\n" > /mnt/etc/locale.gen && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install /etc/locale.conf: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.conf) &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "└── generate locale: " ; arch-chroot /mnt locale-gen &>> "$logfile" && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "├── install /etc/locale.conf: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.conf) &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── generate locale: " ; arch-chroot /mnt locale-gen &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
 }
 
 function configure_sudoers() {
