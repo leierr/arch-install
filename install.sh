@@ -109,39 +109,72 @@ function partitioning() {
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── mounting extended boot partition: "
 
 	echo -n "├── create etcetera directory: "
-	(mkdir /mnt/etc ; chown root:root /mnt/etc ; chmod 0755 /mnt/etc) &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── create etcetera directory: "; exit 1; }
+	(mkdir /mnt/etc ; chown root:root /mnt/etc ; chmod 0755 /mnt/etc) &> /dev/null
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── create etcetera directory: "
 
 	echo -n "└── make fstab: "
-	genfstab -U /mnt > /mnt/etc/fstab &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── make fstab: "; exit 1; }
+	genfstab -U /mnt > /mnt/etc/fstab || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── make fstab: "; exit 1; }
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── make fstab: "
 }
 
 function pacstrap_and_configure_pacman() {
 	echo -e "\033[1m:: Pacstrap ::\033[0m"
+
 	echo -n "├── check cpu type for installing ucode: "
-	if [[ $(grep -P "(?<=vendor_id\s\:\s)AuthenticAMD" /proc/cpuinfo) ]] ; then
-		packages_to_install+=("amd-ucode")
-		ucode="amd"
-		echo -e "\e[31m\e[1mAMD\e[0m"
-	elif [[ $(grep -P "(?<=vendor_id\s\:\s)GenuineIntel" /proc/cpuinfo) ]] ; then
-		packages_to_install+=("intel-ucode")
-		ucode="intel"
-		echo -e "\e[34m\e[1mINTEL\e[0m"
-	else
-		echo -e "\e[1m\e[4mN/A\e[0m"
-	fi
-	echo -n "├── rank mirrors: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install pacman.conf for live environment: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/pacman.conf" > /etc/pacman.conf) &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── sync: " ; pacman -Syy --noconfirm &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── running pacstrap: " ; pacstrap /mnt "${packages_to_install[@]}" &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install pacman.conf for new system: " ; cp /etc/pacman.conf /mnt/etc/pacman.conf &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── rank mirrors for new system: " ; reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── initialize pacman keyring for new system: " ; arch-chroot /mnt pacman-key --init &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "└── Populate pacman keyring for new system: " ; arch-chroot /mnt pacman-key --populate archlinux &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	case $(grep -m 1 -Po "(?<=vendor_id\s\:\s)[A-Za-z]+" /proc/cpuinfo) in
+
+		"AuthenticAMD")
+			packages_to_install+=("amd-ucode")
+			printf "\r%*s\033[1m\e[31m%s\e[0m\033[0m%s\r%s\n" $(($(tput cols) - 5)) "[ " "AMD" " ]" "├── check cpu type for installing ucode: "
+			;;
+
+		"GenuineIntel")
+			packages_to_install+=("intel-ucode")
+			printf "\r%*s\033[1m\e[34m%s\e[0m\033[0m%s\r%s\n" $(($(tput cols) - 6)) "[" "INTEL" "]" "├── check cpu type for installing ucode: "
+			;;
+
+		*)
+			printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── check cpu type for installing ucode: "
+			;;
+	esac || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── check cpu type for installing ucode: "; exit 1; }
+
+	echo -n "├── rank mirrors: "
+	reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /etc/pacman.d/mirrorlist &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── rank mirrors: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── rank mirrors: "
+
+	echo -n "├── install pacman.conf for live environment: "
+	curl "https://raw.githubusercontent.com/leierr/arch-install/main/pacman.conf" &>/dev/null > /etc/pacman.conf || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install pacman.conf for live environment: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install pacman.conf for live environment: "
+
+	echo -n "├── sync: "
+	pacman -Syy --noconfirm &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── sync: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── sync: "
+
+	echo -n "├── running pacstrap: "
+	pacstrap /mnt "${packages_to_install[@]}" &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── running pacstrap: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── running pacstrap: "
+
+	echo -n "├── install pacman.conf for new system: "
+	cp /etc/pacman.conf /mnt/etc/pacman.conf || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install pacman.conf for new system: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install pacman.conf for new system: "
+
+	echo -n "├── rank mirrors for new system: "
+	reflector --country Norway,Denmark,Iceland,Finland --protocol https --sort rate --save /mnt/etc/pacman.d/mirrorlist &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── rank mirrors for new system: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── rank mirrors for new system: "
+
+	echo -n "├── initialize pacman keyring for new system: "
+	arch-chroot /mnt pacman-key --init &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── initialize pacman keyring for new system: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── initialize pacman keyring for new system: "
+
+	echo -n "└── Populate pacman keyring for new system: "
+	arch-chroot /mnt pacman-key --populate archlinux &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── Populate pacman keyring for new system: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── Populate pacman keyring for new system: "
 }
 
+# good so far
+
 function bootloader() {
+	MUTE THE SHIT
 	local boot="/mnt/efi"
 	local extended_boot="/mnt/boot"
 	local bootloader_config_file="/mnt/boot/loader/entries/arch.conf"
@@ -161,8 +194,8 @@ function bootloader() {
 	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
 	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
 	case $(grep -m 1 -Po "(?<=vendor_id\s\:\s)[A-Za-z]+" /proc/cpuinfo) in
-		"AuthenticAMD") echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw amd_iommu=on\n" > $bootloader_config_file ;;
-		"GenuineIntel") echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw intel_iommu=on\n" > $bootloader_config_file ;;
+		"AuthenticAMD") echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file ;;
+		"GenuineIntel") echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file ;;
 		*) echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file ;;
 	esac || { echo -e "[ \e[31mERROR\e[0m ]"; exit 1; }
 	echo -e "[ \e[32mOK\e[0m ]"
