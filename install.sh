@@ -222,22 +222,25 @@ function configure_network() {
 	echo -e "\033[1m:: network ::\033[0m"
 
 	echo -n "├── install /etc/NetworkManager/NetworkManager.conf: "
-
-	mkdir -m 0755 /mnt/etc/NetworkManager &> /dev/null ; chown root:root /mnt/etc/NetworkManager &> /dev/null
-	echo -e "[main]\nplugins= \nno-auto-default=*\n" > /mnt/etc/NetworkManager/NetworkManager.conf || { echo -e "\e[31merr\e[0m"; exit 1; }
-	chmod 0644 /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null ; chown root:root /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null
-	echo -e "\e[32mOK\e[0m"
+	mkdir -m 0755 /mnt/etc/NetworkManager &> /dev/null
+	chown root:root /mnt/etc/NetworkManager &> /dev/null
+	echo -e "[main]\nplugins= \nno-auto-default=*\n" > /mnt/etc/NetworkManager/NetworkManager.conf || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install /etc/NetworkManager/NetworkManager.conf: "; exit 1; }
+	chmod 0644 /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null
+	chown root:root /mnt/etc/NetworkManager/NetworkManager.conf &> /dev/null
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install /etc/NetworkManager/NetworkManager.conf: "
 	
-	echo -n "└── enable NetworkManager service: " ; arch-chroot /mnt systemctl enable NetworkManager && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	echo -n "└── enable NetworkManager service: "
+	arch-chroot /mnt systemctl enable NetworkManager || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── enable NetworkManager service: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── enable NetworkManager service: "
 }
 
 function configure_users_and_groups() {
-	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: configure users and groups ::\033[0m"
+
 	echo -n "└── create user $user_account_name: " ;
 
 	for i in "${user_account_groups[@]}"; do
-		[[ $(arch-chroot /mnt getent group "$i") ]] || { arch-chroot /mnt groupadd "$i" ; echo "created group $i" >> "$logfile" ; }
+		[[ $(arch-chroot /mnt getent group "$i") ]] || arch-chroot /mnt groupadd "$i" || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── create user $user_account_name: "; exit 1; }
 	done
 
 	local useradd_command=("arch-chroot /mnt useradd "$user_account_name" -m")
@@ -247,30 +250,38 @@ function configure_users_and_groups() {
 	[[ -n "$user_account_shell" ]] && useradd_command+=("-s" "$user_account_shell") || useradd_command+=("-s" "/bin/bash")
 	[[ -n "$user_account_comment" ]] && useradd_command+=("-c" "'$user_account_comment'")
 
-	${useradd_command[@]} &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+	${useradd_command[@]} &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── create user $user_account_name: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── create user $user_account_name: "
 }
 
 function configure_locale() {
-	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: locale ::\033[0m"
-	echo -n "├── install /etc/locale.gen: " ; echo -e "en_US.UTF-8 UTF-8\nnb_NO.UTF-8 UTF-8\n" > /mnt/etc/locale.gen && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "├── install /etc/locale.conf: " ; (curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.conf) &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
-	echo -n "└── generate locale: " ; arch-chroot /mnt locale-gen &> /dev/null && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+
+	echo -n "├── install /etc/locale.gen: "
+	echo -e "en_US.UTF-8 UTF-8\nnb_NO.UTF-8 UTF-8\n" > /mnt/etc/locale.gen || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install /etc/locale.gen: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install /etc/locale.gen: "
+
+	echo -n "├── install /etc/locale.conf: "
+	curl "https://raw.githubusercontent.com/leierr/arch-install/main/locale.conf" > /mnt/etc/locale.conf || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install /etc/locale.conf: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install /etc/locale.conf: "
+
+	echo -n "└── generate locale: "
+	arch-chroot /mnt locale-gen &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── generate locale: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── generate locale: "
 }
 
 function configure_sudoers() {
-	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: sudoers ::\033[0m"
-	echo -n "└── install /etc/sudoers: " ; echo -e "root ALL=(ALL) ALL\nDefaults editor=/bin/vim\nDefaults timestamp_timeout=10\n%wheel ALL=(ALL) NOPASSWD: ALL" > /mnt/etc/sudoers && echo -e "\e[32mOK\e[0m" || { echo -e "\e[31merr\e[0m"; exit 1; }
+
+	echo -n "└── install /etc/sudoers: "
+	echo -e "root ALL=(ALL) ALL\nDefaults editor=/bin/vim\nDefaults timestamp_timeout=10\n%wheel ALL=(ALL) NOPASSWD: ALL" > /mnt/etc/sudoers || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── install /etc/sudoers: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── install /etc/sudoers: "
 }
 
 clear ; setfont ter-v22b
 pre_checks
-printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 choose_your_disk "${1}"
-printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 partitioning "$install_disk"
-printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 pacstrap_and_configure_pacman
 bootloader
 configure_network
