@@ -50,7 +50,6 @@ function choose_your_disk() {
 	for i in ${!disk_list[@]} ; do
 		local archiso=$(lsblk -dnpo NAME,FSTYPE | grep -Po "/dev/[a-z]*(?=\s+iso)")
 		if [ "${disk_list[$i]}" == "$archiso" ]; then
-			echo "${disk_list[$i]}" "---" "$archiso"
 			unset disk_list[$i]
 		fi
 	done
