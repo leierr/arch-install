@@ -171,10 +171,7 @@ function pacstrap_and_configure_pacman() {
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── Populate pacman keyring for new system: "
 }
 
-# good so far
-
 function bootloader() {
-	MUTE THE SHIT
 	local boot="/mnt/efi"
 	local extended_boot="/mnt/boot"
 	local bootloader_config_file="/mnt/boot/loader/entries/arch.conf"
@@ -187,19 +184,27 @@ function bootloader() {
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── checks: "
 
 	echo -n "├── install systemd-boot: "
-	bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux" install || { echo -e "[ \e[31mERROR\e[0m ]"; exit 1; }
-	echo -e "[ \e[32mOK\e[0m ]"
+	bootctl --esp-path=/mnt/efi --boot-path=/mnt/boot --efi-boot-option-description="Arch Linux" install &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "├── install systemd-boot: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── install systemd-boot: "
 
 	echo -n "└── install systemd-boot config file: "
 	mkdir -m 755 -p /mnt/boot/loader/entries &> /dev/null
 	chown root:root {/mnt/boot,/mnt/boot/loader,/mnt/boot/loader/entries} &> /dev/null
 	case $(grep -m 1 -Po "(?<=vendor_id\s\:\s)[A-Za-z]+" /proc/cpuinfo) in
-		"AuthenticAMD") echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file ;;
-		"GenuineIntel") echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file ;;
-		*) echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file ;;
-	esac || { echo -e "[ \e[31mERROR\e[0m ]"; exit 1; }
-	echo -e "[ \e[32mOK\e[0m ]"
+		"AuthenticAMD")
+			echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /amd-ucode.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file
+			;;
+		"GenuineIntel")
+			echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\ninitrd /intel-ucode.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file
+			;;
+		*)
+			echo -e "title Arch Linux\nlinux /vmlinuz-linux-lts\ninitrd /initramfs-linux-lts.img\noptions root=\"LABEL=arch_os\" rw\n" > $bootloader_config_file
+			;;
+	esac || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── install systemd-boot config file: "; exit 1; }
+	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── install systemd-boot config file: "
 }
+
+# good so far
 
 function configure_network() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
