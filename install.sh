@@ -215,8 +215,6 @@ function bootloader() {
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── install systemd-boot config file: "
 }
 
-# great so far
-
 function configure_network() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: network ::\033[0m"
