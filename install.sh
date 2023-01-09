@@ -217,7 +217,6 @@ function bootloader() {
 }
 
 function configure_network() {
-	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: network ::\033[0m"
 
 	echo -n "├── install /etc/NetworkManager/NetworkManager.conf: "
