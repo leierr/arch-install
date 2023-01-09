@@ -90,7 +90,6 @@ function partitioning() {
 	[[ ${#disk_partitions[@]} -eq 3 && -n ${disk_partitions[@]} ]] || { echo "something went wrong when saving new partitions to variable"; exit 1; }
 
 	# filesystems
-	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 	echo -e "\033[1m:: Filesystems ::\033[0m"
 
 	echo -n "├── boot partition: "
