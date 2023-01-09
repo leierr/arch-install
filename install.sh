@@ -40,7 +40,7 @@ function choose_your_disk() {
 	local disk_list=($(lsblk -dnpo NAME -I 8,259,254,179 | grep -Pv "mmcblk\dboot\d"))
 
 	# checks if disk was supplied through arguments
-	[[ -n "${1}" && -e "${1}" && -b "${1}" && ! $(lsblk -dnpo NAME,FSTYPE | grep -P "${1}\s+iso") ]] && return 0
+	[[ -n "${1}" && -e "${1}" && -b "${1}" && ! $(lsblk -dnpo NAME,FSTYPE | grep -P "${1}\s+iso") ]] && { install_disk="${1}"; return 0; }
 
 	# pretty print disks
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
