@@ -62,6 +62,7 @@ function choose_your_disk() {
 	printf "%*s\n" "${COLUMNS:-$(tput cols)}" "" | tr " " -
 
     install_disk="$disk"
+	clear
     return 0
 }
 
@@ -282,8 +283,8 @@ function configure_sudoers() {
 }
 
 clear ; setfont ter-v22b
-pre_checks
 choose_your_disk "${1}"
+pre_checks
 partitioning "$install_disk"
 pacstrap_and_configure_pacman
 bootloader
