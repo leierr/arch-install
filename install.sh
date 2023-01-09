@@ -124,7 +124,7 @@ function partitioning() {
 	(mkdir /mnt/etc ; chown root:root /mnt/etc ; chmod 0755 /mnt/etc) &> /dev/null
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── create etcetera directory: "
 
-	echo -n "└── make fstab: "
+	echo -n "└── install fstab: "
 	genfstab -U /mnt > /mnt/etc/fstab || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── make fstab: "; exit 1; }
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── make fstab: "
 }
@@ -253,7 +253,7 @@ function configure_users_and_groups() {
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "├── create user: $user_account_name"
 
 	echo -n "└── unlock user: $user_account_name"
-	passwd -d "$user_account_name" || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── unlock user: $user_account_name"; exit 1; }
+	arch-chroot /mnt passwd -d "$user_account_name" &> /dev/null || { printf "\r%*s\e[31m%s\e[0m%s\r%s\n" $(($(tput cols) - 7)) "[" "FAILED" "]" "└── unlock user: $user_account_name"; exit 1; }
 	printf "\r%*s\e[32m%s\e[0m%s\r%s\n" $(($(tput cols) - 5)) "[  " "OK" "  ]" "└── unlock user: $user_account_name"
 }
 
