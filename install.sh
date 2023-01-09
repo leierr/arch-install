@@ -130,6 +130,7 @@ function partitioning() {
 }
 
 function pacstrap_and_configure_pacman() {
+	local packages_to_install=${1}
 	echo -e "\033[1m:: Pacstrap ::\033[0m"
 
 	echo -n "├── check cpu type for installing ucode: "
@@ -284,9 +285,11 @@ clear ; setfont ter-v22b
 choose_your_disk "${1}"
 pre_checks
 partitioning "$install_disk"
-pacstrap_and_configure_pacman
+pacstrap_and_configure_pacman $packages_to_install
 bootloader
 configure_network
 configure_users_and_groups
 configure_locale
 configure_sudoers
+
+# add vconsole conf med fonten over.
